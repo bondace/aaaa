@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+	<head>
+		<title>websocket chat</title>
+		<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+		<script src="/socket.io/socket.io.js"></script>
+		<script>
+		$(function(){
+			var socket = io.connect('http://localhost:8888/');
+	
+			$('#page2').hide();
+			
+			$('#start').on('click', function(){
+				$('#page1').hide();
+				$('#page2').show();
+				socket.json.emit('set name', {value: $('[type="name"]').val()});
+				$('#send').on('click', function(){
+					if($('#message').val()){
+						var message = __replace($('#message').val());
+						socket.json.send({val: message});
+						$('#message').val('');
+					}
+				});
+			});
+
+			socket.on('message', function(data){
+				$('#display').prepend(data.sender + ':<br>' + data.val + '<br><br>');
+			});
+		});
+		
+		function __replace(str){
+				str = str.replace(/</g, '&lt;');
+				str = str.replace(/>/g, '&gt;');
+				str = str.replace(/\n/g, '<br>');
+				return str;
+		}
+		</script>
+	</head>
+	<body>
+		<div id="page1">
+			<input type="name" />
+			<input type="button" id="start" value="start" />
+		</div>
+		<div id="page2">
+			<textarea id="message" rows="4" cols="40"></textarea><br>
+			<input type="button" id="send" value="Send" /><br>
+			<div id="display"></div>
+		</div>
+	</body>
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+	<head>
+		<title>websocket chat</title>
+		<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+		<script src="/socket.io/socket.io.js"></script>
+		<script>
+		$(function(){
+			var socket = io.connect('http://localhost:8888/');
+	
+			$('#page2').hide();
+			
+			$('#start').on('click', function(){
+				$('#page1').hide();
+				$('#page2').show();
+				socket.json.emit('set name', {value: $('[type="name"]').val()});
+				$('#send').on('click', function(){
+					if($('#message').val()){
+						var message = __replace($('#message').val());
+						socket.json.send({val: message});
+						$('#message').val('');
+					}
+				});
+				$('#file').on('change', function(e){
+					var file = e.target.files[0];
+					if(file){
+						var splits = $('#file').val().split('\\');
+						var reader = new FileReader();
+						$('#file').val('');
+						reader.onload = function(){
+							socket.emit('blob', {
+								val: 		reader.result,
+								filename:	splits[splits.length - 1],
+								filetype:	file.type
+							});
+						};
+						reader.readAsArrayBuffer(file);
+					}
+				});
+			});
+			
+			socket.on('message', function(data){
+				$('#display').prepend(data.sender + ':<br>' + data.val + '<br><br>');
+			});
+			
+			socket.on('blob', function(data){
+				console.log(data.filetype);
+				if(data.filetype.match('image')){
+					var imgUrl = window.URL.createObjectURL(new Blob([data.val], {type: data.filetype}));
+					$('#display').prepend(data.sender + ':<br><a href="' + imgUrl + '" target="_blank"><img src="' +
+										imgUrl + '" height="300"></a><br><br>');
+				}
+				else{
+					var blobUrl = window.URL.createObjectURL(new Blob([data.val], {type: data.filetype}));
+					$('#display').prepend(data.sender + ':<br><a href="' + blobUrl +
+										'" download="' + data.filename + '">' + data.filename + '</a><br><br>');
+				}
+			});
+		});
+		
+		function __replace(str){
+				str = str.replace(/</g, '&lt;');
+				str = str.replace(/>/g, '&gt;');
+				str = str.replace(/\n/g, '<br>');
+				return str;
+		}
+		</script>
+	</head>
+	<body>
+		<div id="page1">
+			<input type="name" />
+			<input type="button" id="start" value="start" />
+		</div>
+		<div id="page2">
+			<textarea id="message" rows="4" cols="40"></textarea><br>
+			<input type="button" id="send" value="Send" /><br>
+			<input type="file" id="file"/>
+			<div id="display"></div>
+		</div>
+	</body>
+</html>
